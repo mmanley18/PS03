@@ -1,6 +1,6 @@
 ---
 title: "STAT/MATH 495: Problem Set 03"
-author: "WRITE YOUR NAME HERE"
+author: "Meredith Manley"
 date: "2017-09-26"
 output:
   html_document:
@@ -16,6 +16,7 @@ knitr::opts_chunk$set(echo = TRUE, fig.width=8, fig.height=4.5)
 
 # Load packages
 library(tidyverse)
+library (plyr)
 data1 <- read_csv("data/data1.csv")
 data2 <- read_csv("data/data2.csv")
 ```
@@ -34,11 +35,496 @@ For both `data1` and `data2` tibbles (a tibble is a data frame with some
 
 # Data 1
 
+> The approach for this problem set was to do a k=5 fold cross validation. Below are the steps that were taken to divide the original data into 5 random, equal blocks without replacement so every observation within and between groups is unique.
+
+#### Divide data into 5 equal, random blocks for k=5 Cross Validation
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
+
+# 600 random samples
+A <- data1 %>% 
+  sample_n(600)
+# 2400 remaining observations from the original data
+B <- data1 %>%
+  anti_join(A, by="ID")
+# 1800 random samples from original data
+C <- B %>%
+  sample_n(1800)
+# 600 random samples, observations that were not included in dataframe 'C'
+B <- B %>%
+  anti_join(C, by="ID")
+# 1200 random samples from dataframe 'C'
+D <- C %>%
+  sample_n(1200)
+# 600 random samples, observations that were not included in dataframe 'D'
+C <- C %>%
+  anti_join(D, by="ID")
+# 600 random samples from dataframe 'D'
+E <- D %>%
+  sample_n(600)
+# 600 random samples, observations that were not included in dataframe 'E'
+D <- D %>%
+  anti_join(E, by="ID")
 ```
+
+> Once the data was appropriately broken up into 5 groups, we constructed a for loop to determine that value for degrees of freedom which would result in lowest RMSE. Here we implemented the k=5 fold cross validation concept such that all of the data is at one point either training the model or testing the model.
+
+## Cross Validation Procedure
+```{r}
+# create empty vector for the RMSE values from for loop to be saved in 
+RMSE_scores <- c()
+
+for (df in 1:60) {
+
+#### Test on dataframe A ##################################################
+# organize test and training datasets
+test_A <- A
+train_A <- data1 %>%
+  anti_join(A, by="ID")
+
+# fit model based on training data
+splineModA <- smooth.spline(x = train_A$x, y = train_A$y, df=df)
+summary(splineModA)
+
+# generate y_hat
+y_hat <- predict(splineModA, test_A$x) %>% 
+  tibble::as.tibble()
+
+# add y_hat to test dataset
+y_hat <- y_hat$y
+test_A <- test_A %>%
+  mutate(y_hat = y_hat)
+
+# report RMSE
+test_A <- test_A %>%
+  mutate(epsilon = y - y_hat) %>%
+  mutate(MSE = mean((y - y_hat)^2)) %>%
+  mutate(RMSE = sqrt(MSE))
+
+#### Test on dataframe B ##################################################
+# organize test and training datasets
+test_B <- B
+train_B <- data1 %>%
+  anti_join(B, by="ID")
+
+# fit model based on training data
+splineModB <- smooth.spline(x = train_B$x, y = train_B$y, df=df)
+summary(splineModB)
+
+# generate y_hat
+y_hat <- predict(splineModB, test_B$x) %>% 
+  tibble::as.tibble()
+
+# add y_hat to test dataset
+y_hat <- y_hat$y
+test_B <- test_B %>%
+  mutate(y_hat = y_hat)
+
+# report RMSE
+test_B <- test_B %>%
+  mutate(epsilon = y - y_hat) %>%
+  mutate(MSE = mean((y - y_hat)^2)) %>%
+  mutate(RMSE = sqrt(MSE))
+
+
+#### Test on dataframe C ##################################################
+# organize test and training datasets
+test_C <- C
+train_C <- data1 %>%
+  anti_join(C, by="ID")
+
+# fit model based on training data
+splineModC <- smooth.spline(x = train_C$x, y = train_C$y, df=df)
+summary(splineModC)
+
+# generate y_hat
+y_hat <- predict(splineModC, test_C$x) %>% 
+  tibble::as.tibble()
+
+# add y_hat to test dataset
+y_hat <- y_hat$y
+test_C <- test_C %>%
+  mutate(y_hat = y_hat)
+
+# report RMSE
+test_C <- test_C %>%
+  mutate(epsilon = y - y_hat) %>%
+  mutate(MSE = mean((y - y_hat)^2)) %>%
+  mutate(RMSE = sqrt(MSE))
+
+
+#### Test on dataframe D ##################################################
+# organize test and training datasets
+test_D <- D
+train_D <- data1 %>%
+  anti_join(D, by="ID")
+
+# fit model based on training data
+splineModD <- smooth.spline(x = train_D$x, y = train_D$y, df=df)
+summary(splineModD)
+
+# generate y_hat
+y_hat <- predict(splineModD, test_D$x) %>% 
+  tibble::as.tibble()
+
+# add y_hat to test dataset
+y_hat <- y_hat$y
+test_D <- test_D %>%
+  mutate(y_hat = y_hat)
+
+# report RMSE
+test_D <- test_D %>%
+  mutate(epsilon = y - y_hat) %>%
+  mutate(MSE = mean((y - y_hat)^2)) %>%
+  mutate(RMSE = sqrt(MSE))
+
+
+#### Test on dataframe E ##################################################
+# organize test and training datasets
+test_E <- E
+train_E <- data1 %>%
+  anti_join(E, by="ID")
+
+# fit model based on training data
+splineModE <- smooth.spline(x = train_E$x, y = train_E$y, df=df)
+summary(splineModE)
+
+# generate y_hat
+y_hat <- predict(splineModE, test_E$x) %>% 
+  tibble::as.tibble()
+
+# add y_hat to test dataset
+y_hat <- y_hat$y
+test_E <- test_E %>%
+  mutate(y_hat = y_hat)
+
+# report RMSE
+test_E <- test_E %>%
+  mutate(epsilon = y - y_hat) %>%
+  mutate(MSE = mean((y - y_hat)^2)) %>%
+  mutate(RMSE = sqrt(MSE))
+
+# take the average of the RMSE
+RMSE_A <- mean(test_A$RMSE)
+RMSE_B <- mean(test_B$RMSE)
+RMSE_C <- mean(test_C$RMSE)
+RMSE_D <- mean(test_D$RMSE)
+RMSE_E <- mean(test_E$RMSE)
+
+score <- (RMSE_A + RMSE_B + RMSE_C + RMSE_D + RMSE_E)/5
+
+RMSE_scores[length(RMSE_scores)+1] = score
+
+}
+
+```
+
+> We iterated this process over all integers from 1 to 60 and obtained a value for the degrees of freedom where RMSE was its lowest. In the model we plan to use 35 degrees of freedom and this is supported by the following visualization.
+
+
+## Visualization Supporting Model Selection
+```{r}
+# plot of RMSE on y-axis and df(1:50) on x-axis
+x <- as.numeric(c(1:60))
+plot <- data.frame(x, RMSE_scores)
+ggplot(plot, aes(x=x, y=RMSE_scores)) + 
+  geom_line() + 
+  geom_line(aes(which.min(plot$RMSE_scores), col="red")) +
+  labs(title = "Degrees of Freedom Selection", x = "degrees of freedom", y = "RMSE")
+
+# point where RMSE is the 
+df <- which.min(plot$RMSE_scores)
+```
+
+> In this ggplot, we the point at which the RMSE is at its lowest corresponds to the point at which the degrees of freedom is 35, so in building our model we will use df=35.
+
+#### Model Selection
+```{r}
+# final model
+splineFinal <- smooth.spline(x = data1$x, y = data1$y, df=df)
+```
+
+> With the degrees of freedom determined to be 35 for this data, we create the final model which we train on all of dataset 'data1'
+
+## Visualization Supporting Model Selection
+```{r}
+# plot
+splineFinal %>%
+  broom::augment() %>% 
+  ggplot(aes(x=x)) +
+  geom_point(aes(y=y)) +
+  geom_line(aes(y=.fitted), col="blue", size=1)
+```
+
+> From this plot we observe that the model with the determined degrees of freedom is a fairly accurate fit for the given data. 
+
+## Estimate of Sigma
+```{r}
+# epsilon is normally distributed with a mean of 0
+# generate y_hat
+y_hat <- predict(splineFinal, data1$x) %>% 
+  tibble::as.tibble()
+
+# add y_hat to dataset
+y_hat <- y_hat$y
+data1 <- data1 %>%
+  mutate(y_hat = y_hat)
+
+# report RMSE
+data1 <- data1 %>%
+  mutate(epsilon = y - y_hat) %>%
+  mutate(MSE = mean((y - y_hat)^2)) %>%
+  mutate(RMSE = sqrt(MSE))
+
+# estimate of signma
+estimate <- sd(data1$epsilon)
+```
+
+********************************************************************************************************
 
 # Data 2
 
+> The approach for this problem set was to do a k=5 fold cross validation. Below are the steps that were taken to divide the original data into 5 random, equal blocks without replacement so every observation within and between groups is unique.
+
+#### Divide data into 5 equal, random blocks for k=5 Cross Validation
 ```{r, echo=TRUE, warning=FALSE, message=FALSE}
+
+# 600 random samples
+A <- data2 %>% 
+  sample_n(600)
+# 2400 remaining observations from the original data
+B <- data2 %>%
+  anti_join(A, by="ID")
+# 1800 random samples from original data
+C <- B %>%
+  sample_n(1800)
+# 600 random samples, observations that were not included in dataframe 'C'
+B <- B %>%
+  anti_join(C, by="ID")
+# 1200 random samples from dataframe 'C'
+D <- C %>%
+  sample_n(1200)
+# 600 random samples, observations that were not included in dataframe 'D'
+C <- C %>%
+  anti_join(D, by="ID")
+# 600 random samples from dataframe 'D'
+E <- D %>%
+  sample_n(600)
+# 600 random samples, observations that were not included in dataframe 'E'
+D <- D %>%
+  anti_join(E, by="ID")
+```
+
+> Once the data was appropriately broken up into 5 groups, we constructed a for loop to determine that value for degrees of freedom which would result in lowest RMSE. Here we implemented the k=5 fold cross validation concept such that all of the data is at one point either training the model or testing the model.
+
+## Cross Validation Procedure
+```{r}
+# create empty vector for the RMSE values from for loop to be saved in 
+RMSE_scores <- c()
+
+for (df in 1:60) {
+
+#### Test on dataframe A ##################################################
+# organize test and training datasets
+test_A <- A
+train_A <- data1 %>%
+  anti_join(A, by="ID")
+
+# fit model based on training data
+splineModA <- smooth.spline(x = train_A$x, y = train_A$y, df=df)
+summary(splineModA)
+
+# generate y_hat
+y_hat <- predict(splineModA, test_A$x) %>% 
+  tibble::as.tibble()
+
+# add y_hat to test dataset
+y_hat <- y_hat$y
+test_A <- test_A %>%
+  mutate(y_hat = y_hat)
+
+# report RMSE
+test_A <- test_A %>%
+  mutate(epsilon = y - y_hat) %>%
+  mutate(MSE = mean((y - y_hat)^2)) %>%
+  mutate(RMSE = sqrt(MSE))
+
+#### Test on dataframe B ##################################################
+# organize test and training datasets
+test_B <- B
+train_B <- data1 %>%
+  anti_join(B, by="ID")
+
+# fit model based on training data
+splineModB <- smooth.spline(x = train_B$x, y = train_B$y, df=df)
+summary(splineModB)
+
+# generate y_hat
+y_hat <- predict(splineModB, test_B$x) %>% 
+  tibble::as.tibble()
+
+# add y_hat to test dataset
+y_hat <- y_hat$y
+test_B <- test_B %>%
+  mutate(y_hat = y_hat)
+
+# report RMSE
+test_B <- test_B %>%
+  mutate(epsilon = y - y_hat) %>%
+  mutate(MSE = mean((y - y_hat)^2)) %>%
+  mutate(RMSE = sqrt(MSE))
+
+
+#### Test on dataframe C ##################################################
+# organize test and training datasets
+test_C <- C
+train_C <- data1 %>%
+  anti_join(C, by="ID")
+
+# fit model based on training data
+splineModC <- smooth.spline(x = train_C$x, y = train_C$y, df=df)
+summary(splineModC)
+
+# generate y_hat
+y_hat <- predict(splineModC, test_C$x) %>% 
+  tibble::as.tibble()
+
+# add y_hat to test dataset
+y_hat <- y_hat$y
+test_C <- test_C %>%
+  mutate(y_hat = y_hat)
+
+# report RMSE
+test_C <- test_C %>%
+  mutate(epsilon = y - y_hat) %>%
+  mutate(MSE = mean((y - y_hat)^2)) %>%
+  mutate(RMSE = sqrt(MSE))
+
+
+#### Test on dataframe D ##################################################
+# organize test and training datasets
+test_D <- D
+train_D <- data1 %>%
+  anti_join(D, by="ID")
+
+# fit model based on training data
+splineModD <- smooth.spline(x = train_D$x, y = train_D$y, df=df)
+summary(splineModD)
+
+# generate y_hat
+y_hat <- predict(splineModD, test_D$x) %>% 
+  tibble::as.tibble()
+
+# add y_hat to test dataset
+y_hat <- y_hat$y
+test_D <- test_D %>%
+  mutate(y_hat = y_hat)
+
+# report RMSE
+test_D <- test_D %>%
+  mutate(epsilon = y - y_hat) %>%
+  mutate(MSE = mean((y - y_hat)^2)) %>%
+  mutate(RMSE = sqrt(MSE))
+
+
+#### Test on dataframe E ##################################################
+# organize test and training datasets
+test_E <- E
+train_E <- data1 %>%
+  anti_join(E, by="ID")
+
+# fit model based on training data
+splineModE <- smooth.spline(x = train_E$x, y = train_E$y, df=df)
+summary(splineModE)
+
+# generate y_hat
+y_hat <- predict(splineModE, test_E$x) %>% 
+  tibble::as.tibble()
+
+# add y_hat to test dataset
+y_hat <- y_hat$y
+test_E <- test_E %>%
+  mutate(y_hat = y_hat)
+
+# report RMSE
+test_E <- test_E %>%
+  mutate(epsilon = y - y_hat) %>%
+  mutate(MSE = mean((y - y_hat)^2)) %>%
+  mutate(RMSE = sqrt(MSE))
+
+# take the average of the RMSE
+RMSE_A <- mean(test_A$RMSE)
+RMSE_B <- mean(test_B$RMSE)
+RMSE_C <- mean(test_C$RMSE)
+RMSE_D <- mean(test_D$RMSE)
+RMSE_E <- mean(test_E$RMSE)
+
+score <- (RMSE_A + RMSE_B + RMSE_C + RMSE_D + RMSE_E)/5
+
+RMSE_scores[length(RMSE_scores)+1] = score
+
+}
+
+```
+
+> We iterated this process over all integers from 1 to 60 and obtained a value for the degrees of freedom where RMSE was its lowest. In the model we plan to use 35 degrees of freedom and this is supported by the following visualization.
+
+
+## Visualization Supporting Model Selection
+```{r}
+# plot of RMSE on y-axis and df(1:50) on x-axis
+x <- as.numeric(c(1:60))
+plot <- data.frame(x, RMSE_scores)
+ggplot(plot, aes(x=x, y=RMSE_scores)) + 
+  geom_line() + 
+  geom_line(aes(which.min(plot$RMSE_scores), col="red")) +
+  labs(title = "Degrees of Freedom Selection", x = "degrees of freedom", y = "RMSE")
+
+# point where RMSE is the 
+df <- which.min(plot$RMSE_scores)
+```
+
+> In this ggplot, we the point at which the RMSE is at its lowest corresponds to the point at which the degrees of freedom is 32, so in building our model we will use df=32.`
+
+
+#### Model Selection
+```{r}
+# final model
+splineFinal <- smooth.spline(x = data2$x, y = data2$y, df=df)
+```
+
+> With the degrees of freedom determined to be 32 for this data, we create the final model which we train on all of dataset 'data2'
+
+## Visualization Supporting Model Selection
+```{r}
+# plot
+splineFinal %>%
+  broom::augment() %>% 
+  ggplot(aes(x=x)) +
+  geom_point(aes(y=y)) +
+  geom_line(aes(y=.fitted), col="blue", size=1)
+```
+
+> From this plot we observe that the model with the determined degrees of freedom is a fairly accurate fit for the given data. 
+
+## Estimate of Sigma
+```{r}
+# epsilon is normally distributed with a mean of 0
+# generate y_hat
+y_hat <- predict(splineFinal, data2$x) %>% 
+  tibble::as.tibble()
+
+# add y_hat to dataset
+y_hat <- y_hat$y
+data2 <- data2 %>%
+  mutate(y_hat = y_hat)
+
+# report RMSE
+data2 <- data2 %>%
+  mutate(epsilon = y - y_hat) %>%
+  mutate(MSE = mean((y - y_hat)^2)) %>%
+  mutate(RMSE = sqrt(MSE))
+
+# estimate of signma
+estimate <- sd(data2$epsilon)
 ```
 
